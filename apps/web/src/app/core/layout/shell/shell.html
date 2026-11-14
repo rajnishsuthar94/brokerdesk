@@ -1,0 +1,160 @@
+<div class="min-h-dvh md:flex">
+  <!-- Desktop sidebar -->
+  <aside class="hidden w-60 shrink-0 border-r border-slate-200 bg-white md:flex md:flex-col">
+    <div class="flex h-16 items-center gap-2 border-b border-slate-200 px-5">
+      <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand-700 font-bold text-white" aria-hidden="true">B</span>
+      <span class="text-lg font-semibold tracking-tight">BrokerDesk</span>
+    </div>
+    <nav class="flex-1 space-y-1 p-3" aria-label="Main">
+      @for (item of navItems(); track item.path) {
+        @if (item.enabled) {
+          <a [routerLink]="item.path" routerLinkActive="bg-brand-50 text-brand-800" ariaCurrentWhenActive="page"
+             class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            {{ item.label }}
+          </a>
+        } @else {
+          <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400" aria-disabled="true">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            {{ item.label }}
+            <span class="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">Soon</span>
+          </span>
+        }
+      }
+    </nav>
+  </aside>
+
+  <div class="flex min-h-dvh min-w-0 flex-1 flex-col">
+    <!-- Top header -->
+    <header class="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur md:h-16 md:px-6">
+      <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-700 font-bold text-white md:hidden" aria-hidden="true">B</span>
+
+      <!-- Agency switcher / name -->
+      @if (auth.memberships().length > 1) {
+        <label class="sr-only" for="agency-switcher">Current agency</label>
+        <select id="agency-switcher" class="min-h-10 max-w-[55vw] truncate rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold md:max-w-xs"
+                [value]="auth.activeAgencyId() ?? ''" [disabled]="switching()" (change)="switchAgency($event)" data-testid="agency-switcher">
+          @for (m of auth.memberships(); track m.agencyId) {
+            <option [value]="m.agencyId" [selected]="m.agencyId === auth.activeAgencyId()">{{ m.agencyName }}</option>
+          }
+        </select>
+      } @else {
+        <span class="truncate text-sm font-semibold md:text-base" data-testid="agency-name">
+          {{ auth.activeMembership()?.agencyName ?? 'BrokerDesk' }}
+        </span>
+      }
+
+      <div class="ml-auto flex items-center gap-2">
+        @if (auth.hasAgency()) {
+          <!-- In-app reminders (checked while the app is open; not push notifications). -->
+          <a [routerLink]="'/follow-ups'" [queryParams]="{ view: reminders.hasOverdue() ? 'overdue' : 'today' }"
+             class="relative grid h-10 w-10 place-items-center rounded-full text-slate-600 hover:bg-slate-100"
+             [attr.aria-label]="bellLabel()" [title]="bellLabel()" data-testid="reminders-bell">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0" />
+            </svg>
+            @if (reminders.total() > 0) {
+              <span class="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold leading-5 text-white"
+                    [class]="reminders.hasOverdue() ? 'bg-red-600' : 'bg-brand-700'" aria-hidden="true" data-testid="reminders-count">
+                {{ reminders.total() > 99 ? '99+' : reminders.total() }}
+              </span>
+            }
+          </a>
+        }
+        <span class="hidden items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 sm:inline-flex"
+              role="status" data-testid="system-status-pill">
+          <span class="h-2 w-2 rounded-full"
+                [class.bg-emerald-500]="status.isHealthy()"
+                [class.bg-amber-500]="!status.isHealthy() && status.loadStatus() !== 'loading' && status.loadStatus() !== 'idle'"
+                [class.bg-slate-300]="status.loadStatus() === 'loading' || status.loadStatus() === 'idle'"></span>
+          {{ statusLabel() }}
+        </span>
+
+        <!-- Profile menu -->
+        <div class="relative">
+          <button type="button" class="grid h-10 w-10 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-800"
+                  (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="profile-menu" aria-label="Account menu"
+                  data-testid="profile-menu-button">
+            {{ initials() }}
+          </button>
+          @if (menuOpen()) {
+            <div class="fixed inset-0 z-30" (click)="closeMenus()" aria-hidden="true"></div>
+            <div id="profile-menu" class="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+              <div class="border-b border-slate-100 px-3 pb-3 pt-1">
+                <p class="truncate font-medium">{{ auth.user()?.name }}</p>
+                <p class="truncate text-sm text-slate-500">{{ auth.user()?.email }}</p>
+                @if (auth.role(); as role) {
+                  <p class="mt-1 text-xs text-slate-500">{{ roleLabels[role] }} · {{ auth.activeMembership()?.agencyName }}</p>
+                }
+              </div>
+              <a routerLink="/settings" class="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">Settings</a>
+              @if (auth.hasAgency()) {
+                <a routerLink="/plan" class="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">Plan & usage</a>
+                <a routerLink="/templates" class="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">WhatsApp templates</a>
+              }
+              <a routerLink="/onboarding" class="block rounded-lg px-3 py-2.5 text-sm hover:bg-slate-50">Create another agency</a>
+              <button type="button" class="block w-full rounded-lg px-3 py-2.5 text-left text-sm text-red-700 hover:bg-red-50" (click)="logout()">
+                Log out
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 px-4 pb-24 pt-4 md:px-8 md:pb-8 md:pt-6">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- Mobile "More" sheet -->
+  @if (mobileMoreOpen()) {
+    <div class="fixed inset-0 z-30 bg-slate-900/40 md:hidden" (click)="closeMenus()" aria-hidden="true"></div>
+    <div id="mobile-more" class="fixed inset-x-0 bottom-16 z-40 rounded-t-2xl bg-white p-4 shadow-xl md:hidden">
+      <ul class="grid grid-cols-3 gap-2">
+        @for (item of mobileMore(); track item.path) {
+          <li>
+            @if (item.enabled) {
+              <a [routerLink]="item.path" routerLinkActive="bg-brand-50 text-brand-800"
+                 class="flex flex-col items-center gap-1 rounded-xl p-3 text-center text-xs font-medium text-slate-700">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+                {{ item.label }}
+              </a>
+            } @else {
+              <span class="flex flex-col items-center gap-1 rounded-xl p-3 text-center text-xs text-slate-400" aria-disabled="true">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+                {{ item.label }}
+                <span class="text-[10px] uppercase">Soon</span>
+              </span>
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <!-- Mobile bottom navigation -->
+  @if (mobilePrimary().length > 0) {
+    <nav class="fixed inset-x-0 bottom-0 z-40 grid h-16 grid-cols-5 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Main">
+      @for (item of mobilePrimary(); track item.path) {
+        @if (item.enabled) {
+          <a [routerLink]="item.path" routerLinkActive="text-brand-700" ariaCurrentWhenActive="page"
+             class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-500">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            {{ item.label }}
+          </a>
+        } @else {
+          <span class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-300" aria-disabled="true">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path [attr.d]="item.icon" /></svg>
+            {{ item.label }}
+          </span>
+        }
+      }
+      <button type="button" (click)="toggleMore()" [attr.aria-expanded]="mobileMoreOpen()" aria-controls="mobile-more"
+              class="flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-slate-500" data-testid="mobile-more">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01" /></svg>
+        More
+      </button>
+    </nav>
+  }
+</div>

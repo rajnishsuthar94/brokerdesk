@@ -1,0 +1,143 @@
+<section class="mx-auto max-w-6xl space-y-4">
+  <header class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Leads</h1>
+      <p class="text-sm text-slate-600">
+        @if (canSeeAll()) { All buyer and tenant enquiries in your agency. } @else { Enquiries assigned to you. }
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/leads/capture" class="bd-btn-secondary" data-testid="get-leads-online">Get leads online</a>
+      @if (canImportExport()) {
+        <a routerLink="/leads/import" class="bd-btn-secondary">Import Excel</a>
+        <button type="button" class="bd-btn-secondary" (click)="exportCsv()" [disabled]="exporting() || store.total() === 0">
+          {{ exporting() ? 'Exporting…' : 'Export CSV' }}
+        </button>
+      }
+      <a routerLink="/leads/new" class="bd-btn-primary" data-testid="add-lead">+ Add lead</a>
+    </div>
+  </header>
+
+  <!-- Search + filters -->
+  <div class="bd-card space-y-3 p-3 sm:p-4">
+    <div class="flex gap-2">
+      <label class="sr-only" for="lead-search">Search leads</label>
+      <input id="lead-search" type="search" class="bd-input" placeholder="Search name, phone, email or location"
+             [value]="searchText()" (input)="onSearchInput($event)" autocomplete="off" />
+      <button type="button" class="bd-btn-secondary shrink-0 lg:hidden" (click)="showFilters.set(!showFilters())"
+              [attr.aria-expanded]="showFilters()" aria-controls="lead-filters">
+        Filters @if (store.activeFilterCount() > 0) { <span class="rounded-full bg-brand-700 px-1.5 text-xs text-white">{{ store.activeFilterCount() }}</span> }
+      </button>
+    </div>
+    <div id="lead-filters" [class.hidden]="!showFilters()" class="lg:block">
+      <bd-lead-filters [filters]="store.filters()" [members]="team.members()" [canSeeAll]="canSeeAll()"
+                       [activeCount]="store.activeFilterCount()" (changed)="store.setFilters($event)"
+                       (toggleStatus)="store.toggleStatus($event)" (clear)="store.clearFilters()" />
+    </div>
+  </div>
+
+  <!-- Results -->
+  @if (store.error(); as error) {
+    <div class="bd-card">
+      <p class="bd-alert-error" role="alert">{{ error }}</p>
+      <button type="button" class="bd-btn-secondary mt-3" (click)="store.reload()">Try again</button>
+    </div>
+  } @else if (store.isFirstLoad()) {
+    <div class="space-y-2" aria-busy="true">
+      @for (i of [1, 2, 3, 4]; track i) { <div class="h-20 animate-pulse rounded-2xl bg-slate-100"></div> }
+    </div>
+  } @else if (store.items().length === 0) {
+    <div class="bd-card py-12 text-center" data-testid="leads-empty">
+      @if (store.hasSearchOrFilters()) {
+        <p class="text-base font-medium">No leads match your search</p>
+        <p class="mt-1 text-sm text-slate-600">Try a different name or number, or clear the filters.</p>
+        <button type="button" class="bd-btn-secondary mt-4" (click)="store.clearFilters(); searchText.set('')">Clear search & filters</button>
+      } @else {
+        <p class="text-base font-medium">No leads yet</p>
+        <p class="mt-1 text-sm text-slate-600">Add your first buyer enquiry, import your list from Excel, or share your online enquiry form so buyers add themselves.</p>
+        <div class="mt-4 flex flex-wrap justify-center gap-2">
+          <a routerLink="/leads/new" class="bd-btn-primary">+ Add lead</a>
+          <a routerLink="/leads/capture" class="bd-btn-secondary">Get leads online</a>
+          @if (canImportExport()) { <a routerLink="/leads/import" class="bd-btn-secondary">Import Excel</a> }
+        </div>
+      }
+    </div>
+  } @else {
+    <div [class.opacity-60]="store.isLoading()" class="transition-opacity" [attr.aria-busy]="store.isLoading()">
+      <!-- Mobile: cards -->
+      <ul class="space-y-2 md:hidden">
+        @for (l of store.items(); track l.id) {
+          <li>
+            <a [routerLink]="['/leads', l.id]" class="bd-card block p-4 active:bg-slate-50" data-testid="lead-row">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="truncate font-semibold">{{ l.name }}</p>
+                  <p class="text-sm text-slate-600">{{ l.phone | indianPhone }}</p>
+                </div>
+                <bd-status-badge [status]="l.status" />
+              </div>
+              <p class="mt-2 truncate text-sm text-slate-700">
+                {{ listingLabels[l.listingType] }}@if (l.bhk) { · {{ l.bhk }} BHK }@if (l.preferredLocation) { · {{ l.preferredLocation }} }@if (l.budgetMax) { · up to {{ l.budgetMax | inr: 'short' }} }
+              </p>
+              <div class="mt-2 flex items-center justify-between text-xs">
+                <span [class]="priorityStyles[l.priority]">{{ priorityLabels[l.priority] }} priority</span>
+                @if (l.nextFollowUpAt) {
+                  <span [class.text-red-700]="isOverdue(l.nextFollowUpAt)" [class.font-semibold]="isOverdue(l.nextFollowUpAt)">
+                    Follow-up {{ l.nextFollowUpAt | istDate }}
+                  </span>
+                }
+              </div>
+            </a>
+          </li>
+        }
+      </ul>
+
+      <!-- Desktop: table -->
+      <div class="bd-card hidden overflow-x-auto p-0 md:block">
+        <table class="w-full text-left text-sm">
+          <thead class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <tr>
+              <th scope="col" class="px-4 py-3">Lead</th>
+              <th scope="col" class="px-4 py-3">Requirement</th>
+              <th scope="col" class="px-4 py-3">Budget</th>
+              <th scope="col" class="px-4 py-3">Status</th>
+              <th scope="col" class="px-4 py-3">Follow-up</th>
+              @if (canSeeAll()) { <th scope="col" class="px-4 py-3">Assigned</th> }
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (l of store.items(); track l.id) {
+              <tr class="hover:bg-slate-50" data-testid="lead-row">
+                <td class="px-4 py-3">
+                  <a [routerLink]="['/leads', l.id]" class="font-semibold text-slate-900 hover:text-brand-700">{{ l.name }}</a>
+                  <p class="text-slate-500">{{ l.phone | indianPhone }}</p>
+                </td>
+                <td class="px-4 py-3 text-slate-700">
+                  {{ listingLabels[l.listingType] }}@if (l.bhk) { · {{ l.bhk }} BHK }
+                  <p class="text-slate-500">{{ l.preferredLocation ?? '—' }}</p>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  @if (l.budgetMin || l.budgetMax) {
+                    {{ l.budgetMin ? (l.budgetMin | inr: 'short') : '' }}{{ l.budgetMin && l.budgetMax ? ' – ' : '' }}{{ l.budgetMax ? (l.budgetMax | inr: 'short') : '' }}
+                  } @else { <span class="text-slate-400">—</span> }
+                </td>
+                <td class="px-4 py-3">
+                  <bd-status-badge [status]="l.status" />
+                  <p class="mt-1 text-xs" [class]="priorityStyles[l.priority]">{{ priorityLabels[l.priority] }}</p>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap" [class.text-red-700]="isOverdue(l.nextFollowUpAt)">
+                  {{ l.nextFollowUpAt ? (l.nextFollowUpAt | istDate) : '—' }}
+                </td>
+                @if (canSeeAll()) {
+                  <td class="px-4 py-3 text-slate-700">{{ l.assignedUser?.name ?? 'Unassigned' }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <bd-pagination [page]="store.page()" [pageSize]="pageSize" [total]="store.total()" (pageChange)="store.setPage($event)" />
+  }
+</section>

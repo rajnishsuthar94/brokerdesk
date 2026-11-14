@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+/*
+ * BrokerDesk design tokens (Tailwind v4 theme variables).
+ * Brand = teal; large touch targets and readable type for mobile-first use.
+ */
+@theme {
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Noto Sans', sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Visible keyboard focus everywhere (accessibility). */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+}
+
+/*
+ * Reusable form & button classes (Tailwind v4 custom utilities, so they can be
+ * composed with @apply and used in templates). Inputs are 44px+ tall with 16px
+ * text so mobile browsers don't zoom on focus.
+ */
+@utility bd-card {
+  @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+}
+
+@utility bd-label {
+  @apply mb-1.5 block text-sm font-medium text-slate-700;
+}
+
+@utility bd-input {
+  @apply block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100;
+}
+
+@utility bd-hint {
+  @apply mt-1 text-xs text-slate-500;
+}
+
+@utility bd-error {
+  @apply mt-1 text-sm text-red-700;
+}
+
+@utility bd-btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+@utility bd-btn-primary {
+  @apply bd-btn bg-brand-700 text-white hover:bg-brand-800;
+}
+
+@utility bd-btn-secondary {
+  @apply bd-btn border border-slate-300 bg-white text-slate-700 hover:bg-slate-50;
+}
+
+@utility bd-btn-danger {
+  @apply bd-btn bg-red-600 text-white hover:bg-red-700;
+}
+
+@utility bd-link {
+  @apply font-medium text-brand-700 underline-offset-2 hover:underline;
+}
+
+@utility bd-alert-error {
+  @apply rounded-lg bg-red-50 p-3 text-sm text-red-700;
+}
+
+/* Invalid fields after the user has interacted with them (Angular form state classes). */
+.bd-input.ng-invalid.ng-touched {
+  @apply border-red-500 focus:ring-red-100;
+}

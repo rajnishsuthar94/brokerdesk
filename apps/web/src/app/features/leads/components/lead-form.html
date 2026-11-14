@@ -1,0 +1,153 @@
+<form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <!-- Contact -->
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Contact details</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Contact</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="bd-label" for="lf-name">Buyer name <span class="text-red-600">*</span></label>
+        <input id="lf-name" class="bd-input" formControlName="name" autocomplete="off" />
+        <bd-field-error [control]="form.controls.name" />
+      </div>
+      <div>
+        <label class="bd-label" for="lf-phone">Mobile number <span class="text-red-600">*</span></label>
+        <input id="lf-phone" class="bd-input" type="tel" inputmode="tel" formControlName="phone" placeholder="98765 43210" autocomplete="off" />
+        <bd-field-error [control]="form.controls.phone"
+          [messages]="{ leadPhone: 'Enter a 10-digit mobile number, or an international number starting with +' }" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="bd-label" for="lf-email">Email <span class="font-normal text-slate-500">(optional)</span></label>
+        <input id="lf-email" class="bd-input" type="email" inputmode="email" formControlName="email" autocomplete="off" />
+        <bd-field-error [control]="form.controls.email" />
+      </div>
+    </div>
+  </fieldset>
+
+  <!-- Requirement -->
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Requirement</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Requirement</h2>
+
+    <div role="radiogroup" aria-label="Looking to" class="grid grid-cols-2 gap-2 sm:w-72">
+      @for (o of listingOptions; track o.value) {
+        <label class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 text-sm font-medium has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800">
+          <input type="radio" class="sr-only" formControlName="listingType" [value]="o.value" />
+          {{ o.label }}
+        </label>
+      }
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div>
+        <label class="bd-label" for="lf-type">Property type</label>
+        <select id="lf-type" class="bd-input" formControlName="propertyType">
+          <option value="">Any</option>
+          @for (o of propertyTypeOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="lf-bhk">BHK</label>
+        <select id="lf-bhk" class="bd-input" formControlName="bhk">
+          <option value="">Any</option>
+          @for (b of bhkOptions; track b) { <option [value]="'' + b">{{ b }} BHK</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="lf-location">Preferred location</label>
+        <input id="lf-location" class="bd-input" formControlName="preferredLocation" placeholder="e.g. Shela, Bopal" />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div>
+        <label class="bd-label" for="lf-bmin">Budget from</label>
+        <input id="lf-bmin" class="bd-input" formControlName="budgetMin" inputmode="decimal" placeholder="e.g. 75 L" />
+        <p class="bd-hint">{{ budgetMinHint() || 'You can type 75 L, 1.2 Cr or 7500000' }}</p>
+        <bd-field-error [control]="form.controls.budgetMin" [messages]="{ amount: 'Enter an amount like 75 L, 1.2 Cr or 7500000' }" />
+      </div>
+      <div>
+        <label class="bd-label" for="lf-bmax">Budget up to</label>
+        <input id="lf-bmax" class="bd-input" formControlName="budgetMax" inputmode="decimal" placeholder="e.g. 90 L" />
+        <p class="bd-hint">{{ budgetMaxHint() }}</p>
+        <bd-field-error [control]="form.controls.budgetMax" [messages]="{ amount: 'Enter an amount like 90 L, 1.2 Cr or 9000000' }" />
+        @if (budgetRangeError()) {
+          <p class="bd-error" role="alert">“Budget up to” must be more than “Budget from”</p>
+        }
+      </div>
+    </div>
+
+    <details class="group rounded-lg border border-slate-200 p-3 [&_summary]:cursor-pointer">
+      <summary class="text-sm font-medium text-slate-700">Carpet / built-up area (optional)</summary>
+      <div class="mt-3 grid gap-4 sm:grid-cols-3">
+        <div>
+          <label class="bd-label" for="lf-amin">Area from</label>
+          <input id="lf-amin" class="bd-input" type="number" min="0" inputmode="decimal" formControlName="areaMin" />
+        </div>
+        <div>
+          <label class="bd-label" for="lf-amax">Area up to</label>
+          <input id="lf-amax" class="bd-input" type="number" min="0" inputmode="decimal" formControlName="areaMax" />
+        </div>
+        <div>
+          <label class="bd-label" for="lf-aunit">Unit</label>
+          <select id="lf-aunit" class="bd-input" formControlName="areaUnit">
+            <option value="">—</option>
+            @for (o of areaUnitOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+          </select>
+        </div>
+      </div>
+    </details>
+  </fieldset>
+
+  <!-- Pipeline -->
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Pipeline</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Pipeline</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <label class="bd-label" for="lf-status">Status</label>
+        <select id="lf-status" class="bd-input" formControlName="status">
+          @for (o of statusOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="lf-priority">Priority</label>
+        <select id="lf-priority" class="bd-input" formControlName="priority">
+          @for (o of priorityOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="lf-source">Lead source</label>
+        <select id="lf-source" class="bd-input" formControlName="source">
+          @for (o of sourceOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      @if (canAssign()) {
+        <div>
+          <label class="bd-label" for="lf-assignee">Assigned to</label>
+          <select id="lf-assignee" class="bd-input" formControlName="assignedUserId">
+            <option value="">Unassigned</option>
+            @for (m of members(); track m.userId) { <option [value]="m.userId">{{ m.name }}</option> }
+          </select>
+        </div>
+      }
+      @if (!lead()) {
+        <!-- Only when adding: afterwards follow-ups are scheduled, completed and moved on the lead page. -->
+        <div>
+          <label class="bd-label" for="lf-followup">First follow-up (IST)</label>
+          <input id="lf-followup" class="bd-input" type="datetime-local" formControlName="nextFollowUpAt" />
+        </div>
+      }
+    </div>
+    <div>
+      <label class="bd-label" for="lf-notes">Notes</label>
+      <textarea id="lf-notes" class="bd-input min-h-24 py-2" formControlName="notes" rows="3"
+                placeholder="School nearby, wants ready possession, loan pre-approved…"></textarea>
+      <bd-field-error [control]="form.controls.notes" />
+    </div>
+  </fieldset>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <button type="button" class="bd-btn-secondary" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="bd-btn-primary" [disabled]="busy()">{{ busy() ? 'Saving…' : submitLabel() }}</button>
+  </div>
+</form>

@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-e2e/
+out-tsc/
+coverage/
+.angular/
+*.tsbuildinfo
+
+# Prisma generated client
+apps/api/src/generated/
+
+# Local uploads (dev storage driver)
+apps/api/storage/
+
+# Environment & secrets — never commit real values
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log

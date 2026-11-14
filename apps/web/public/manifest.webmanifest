@@ -1,0 +1,22 @@
+{
+  "name": "BrokerDesk",
+  "short_name": "BrokerDesk",
+  "description": "Simple CRM for real estate brokers: leads, properties, follow-ups and site visits.",
+  "lang": "en-IN",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f766e",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Add lead", "url": "/leads/new", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Follow-ups due", "url": "/follow-ups?view=today", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "brokerdesk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BrokerDesk – multi-tenant real estate CRM SaaS",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": "^22.22.3 || ^24.15.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1"
+  },
+  "scripts": {
+    "build:types": "npm run build -w @brokerdesk/shared-types",
+    "build": "npm run build:types && npm run build -w @brokerdesk/api && npm run build -w @brokerdesk/web",
+    "dev:api": "npm run start:dev -w @brokerdesk/api",
+    "dev:web": "npm run start -w @brokerdesk/web",
+    "dev:types": "tsc -p packages/shared-types/tsconfig.json --watch --preserveWatchOutput",
+    "lint": "npm run lint -w @brokerdesk/api && npm run lint -w @brokerdesk/web",
+    "typecheck": "npm run typecheck -w @brokerdesk/shared-types && npm run typecheck -w @brokerdesk/api",
+    "test": "npm run test -w @brokerdesk/api && npm run test:e2e -w @brokerdesk/api && npm run test -w @brokerdesk/web",
+    "test:e2e": "playwright test -c e2e/playwright.config.ts",
+    "db:up": "docker compose up -d mysql",
+    "db:migrate": "npm run prisma:migrate:deploy -w @brokerdesk/api",
+    "db:migrate:dev": "npm run prisma:migrate:dev -w @brokerdesk/api",
+    "db:seed": "npm run prisma:seed -w @brokerdesk/api",
+    "db:studio": "npm run prisma:studio -w @brokerdesk/api"
+  }
+}

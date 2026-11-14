@@ -1,0 +1,89 @@
+# BrokerDesk local environment. Values come from the repo-root .env (copy .env.example).
+#
+#   Database only (recommended for development; run the apps with npm):
+#     docker compose up -d mysql
+#
+#   Full stack in containers (MySQL -> migrations -> API -> web on :8080):
+#     docker compose --profile app up --build
+
+name: brokerdesk
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-brokerdesk}
+      MYSQL_USER: ${MYSQL_USER:-brokerdesk}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      TZ: UTC
+    ports:
+      # Bound to localhost only; never publish MySQL on all interfaces.
+      - "127.0.0.1:${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  migrate:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-brokerdesk}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-brokerdesk}?allowPublicKeyRetrieval=true
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  api:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      DATABASE_URL: mysql://${MYSQL_USER:-brokerdesk}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-brokerdesk}?allowPublicKeyRetrieval=true
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      TRUST_PROXY_HOPS: 1
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in .env}
+      # The local stack is served over plain http://localhost:8080; production must use HTTPS and true.
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+      APP_BASE_URL: http://localhost:8080
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      PLAN_CATALOG_JSON: ${PLAN_CATALOG_JSON:-}
+      SALES_CONTACT_EMAIL: ${SALES_CONTACT_EMAIL:-}
+    volumes:
+      # Property photos. Back this up together with the database.
+      - api-storage:/repo/apps/api/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    profiles: ["app"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  api-storage:
+  mysql-data:

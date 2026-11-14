@@ -1,0 +1,48 @@
+# Production overlay for docker-compose.yml. See docs/deployment.md.
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml --profile app up -d --build
+#
+# Adds Caddy (automatic HTTPS + HSTS) in front of the web container and switches the
+# API to production settings. Only ports 80/443 are published; MySQL, the API and the
+# web container are reachable on the internal Docker network only.
+# Needs Docker Compose v2.24+ (for `!reset`).
+
+services:
+  mysql:
+    ports: !reset []
+
+  api:
+    environment:
+      NODE_ENV: production
+      SWAGGER_ENABLED: "false"
+      # Client -> Caddy -> nginx (web) -> API: trust two proxy hops for the real client IP.
+      TRUST_PROXY_HOPS: 2
+      REFRESH_COOKIE_SECURE: "true"
+      APP_BASE_URL: ${APP_BASE_URL:?Set APP_BASE_URL to https://<your-domain> in .env}
+      # No email provider is integrated yet (see docs/deployment.md, "Known limitations").
+      MAIL_DRIVER: none
+
+  web:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: ["app"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      BROKERDESK_DOMAIN: ${BROKERDESK_DOMAIN:?Set BROKERDESK_DOMAIN (e.g. app.example.in) in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_started
+
+volumes:
+  caddy-data:
+  caddy-config:

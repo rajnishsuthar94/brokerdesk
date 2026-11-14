@@ -1,0 +1,137 @@
+<form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Listing</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Listing</h2>
+    <div role="radiogroup" aria-label="Listing type" class="grid grid-cols-2 gap-2 sm:w-72">
+      @for (o of listingOptions; track o.value) {
+        <label class="flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-slate-300 text-sm font-medium has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:checked]:text-brand-800">
+          <input type="radio" class="sr-only" formControlName="listingType" [value]="o.value" />{{ o.label }}
+        </label>
+      }
+    </div>
+    <div>
+      <label class="bd-label" for="pf-title">Title <span class="text-red-600">*</span></label>
+      <input id="pf-title" class="bd-input" formControlName="title" placeholder="e.g. 3 BHK in Shela near Club O7" />
+      <bd-field-error [control]="form.controls.title" />
+    </div>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div>
+        <label class="bd-label" for="pf-type">Property type</label>
+        <select id="pf-type" class="bd-input" formControlName="propertyType">
+          @for (o of typeOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="pf-bhk">BHK</label>
+        <select id="pf-bhk" class="bd-input" formControlName="bhk">
+          <option value="">—</option>
+          @for (b of bhkOptions; track b) { <option [value]="'' + b">{{ b }} BHK</option> }
+        </select>
+      </div>
+      <div>
+        <label class="bd-label" for="pf-price">{{ isRent() ? 'Rent per month' : 'Price' }} <span class="text-red-600">*</span></label>
+        <input id="pf-price" class="bd-input" formControlName="price" inputmode="decimal" [placeholder]="isRent() ? 'e.g. 28000' : 'e.g. 85 L'" />
+        <p class="bd-hint">{{ priceHint() || 'You can type 85 L, 1.2 Cr or the full amount' }}</p>
+        <bd-field-error [control]="form.controls.price" [messages]="{ amount: 'Enter an amount like 85 L, 1.2 Cr or 28000' }" />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Location</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Location</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div>
+        <label class="bd-label" for="pf-location">Area / locality <span class="text-red-600">*</span></label>
+        <input id="pf-location" class="bd-input" formControlName="location" placeholder="e.g. Shela" />
+        <bd-field-error [control]="form.controls.location" />
+      </div>
+      <div>
+        <label class="bd-label" for="pf-project">Project / society</label>
+        <input id="pf-project" class="bd-input" formControlName="projectName" placeholder="e.g. Applewoods" />
+      </div>
+      <div>
+        <label class="bd-label" for="pf-city">City</label>
+        <input id="pf-city" class="bd-input" formControlName="city" />
+        <bd-field-error [control]="form.controls.city" />
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Details</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Details</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label class="bd-label" for="pf-area">Area</label>
+          <input id="pf-area" class="bd-input" type="number" min="1" inputmode="decimal" formControlName="area" />
+        </div>
+        <div class="w-28">
+          <label class="bd-label" for="pf-unit">Unit</label>
+          <select id="pf-unit" class="bd-input" formControlName="areaUnit">
+            @for (o of unitOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="bd-label" for="pf-furnishing">Furnishing</label>
+        <select id="pf-furnishing" class="bd-input" formControlName="furnishing">
+          <option value="">—</option>
+          @for (o of furnishingOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label class="bd-label" for="pf-floor">Floor</label>
+          <input id="pf-floor" class="bd-input" formControlName="floor" placeholder="e.g. 7 of 13" />
+        </div>
+        <div class="w-24">
+          <label class="bd-label" for="pf-parking">Parking</label>
+          <input id="pf-parking" class="bd-input" type="number" min="0" max="50" formControlName="parking" />
+        </div>
+      </div>
+    </div>
+    <div>
+      <label class="bd-label" for="pf-description">Description</label>
+      <textarea id="pf-description" class="bd-input min-h-24 py-2" rows="3" formControlName="description"
+                placeholder="East facing, clubhouse, near school…"></textarea>
+    </div>
+  </fieldset>
+
+  <fieldset class="bd-card space-y-4">
+    <legend class="sr-only">Owner and status</legend>
+    <h2 class="text-base font-semibold" aria-hidden="true">Owner & status</h2>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label class="bd-label" for="pf-owner">Owner name</label>
+        <input id="pf-owner" class="bd-input" formControlName="ownerName" autocomplete="off" />
+      </div>
+      <div>
+        <label class="bd-label" for="pf-owner-phone">Owner phone</label>
+        <input id="pf-owner-phone" class="bd-input" type="tel" inputmode="tel" formControlName="ownerPhone" autocomplete="off" />
+        <bd-field-error [control]="form.controls.ownerPhone" [messages]="{ pattern: 'Enter a valid phone number' }" />
+      </div>
+      <div>
+        <label class="bd-label" for="pf-status">Availability</label>
+        <select id="pf-status" class="bd-input" formControlName="availabilityStatus">
+          @for (o of availabilityOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      @if (canAssign()) {
+        <div>
+          <label class="bd-label" for="pf-assignee">Handled by</label>
+          <select id="pf-assignee" class="bd-input" formControlName="assignedUserId">
+            <option value="">Nobody</option>
+            @for (m of members(); track m.userId) { <option [value]="m.userId">{{ m.name }}</option> }
+          </select>
+        </div>
+      }
+    </div>
+  </fieldset>
+
+  <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <button type="button" class="bd-btn-secondary" (click)="cancelled.emit()">Cancel</button>
+    <button type="submit" class="bd-btn-primary" [disabled]="busy()">{{ busy() ? 'Saving…' : submitLabel() }}</button>
+  </div>
+</form>

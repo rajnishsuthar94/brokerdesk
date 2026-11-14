@@ -1,0 +1,134 @@
+<section class="mx-auto max-w-5xl space-y-4">
+  <a routerLink="/leads" class="bd-link text-sm">‹ All leads</a>
+
+  @if (store.notFound()) {
+    <div class="bd-card py-12 text-center">
+      <p class="text-base font-medium">Lead not found</p>
+      <p class="mt-1 text-sm text-slate-600">It may have been deleted, or it isn't assigned to you.</p>
+      <a routerLink="/leads" class="bd-btn-secondary mt-4">Back to leads</a>
+    </div>
+  } @else if (store.error(); as error) {
+    <p class="bd-alert-error" role="alert">{{ error }}</p>
+  } @else if (store.lead(); as lead) {
+    <!-- Header -->
+    <header class="bd-card space-y-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h1 class="truncate text-2xl font-semibold tracking-tight" data-testid="lead-name">{{ lead.name }}</h1>
+          <p class="text-slate-600">{{ lead.phone | indianPhone }}@if (lead.email) { · {{ lead.email }} }</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <bd-status-badge [status]="lead.status" />
+          <span class="text-xs font-semibold" [class]="priorityStyles[lead.priority]">{{ priorityLabels[lead.priority] }}</span>
+        </div>
+      </div>
+      <bd-contact-actions [phone]="lead.phone" [name]="lead.name" />
+    </header>
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="space-y-4 lg:col-span-1">
+        <!-- Pipeline controls -->
+        <article class="bd-card space-y-4" aria-labelledby="pipeline-title">
+          <h2 id="pipeline-title" class="text-base font-semibold">Pipeline</h2>
+          <div>
+            <label class="bd-label" for="d-status">Status</label>
+            <select id="d-status" class="bd-input" [value]="lead.status" [disabled]="store.busy()" (change)="onStatusChange($event)" data-testid="status-select">
+              @for (s of statuses; track s) { <option [value]="s" [selected]="s === lead.status">{{ statusLabels[s] }}</option> }
+            </select>
+          </div>
+          @if (canAssign()) {
+            <div>
+              <label class="bd-label" for="d-assignee">Assigned to</label>
+              <select id="d-assignee" class="bd-input" [disabled]="store.busy()" (change)="onAssign($event)">
+                <option value="" [selected]="!lead.assignedUser">Unassigned</option>
+                @for (m of team.members(); track m.userId) {
+                  <option [value]="m.userId" [selected]="m.userId === lead.assignedUser?.id">{{ m.name }}</option>
+                }
+              </select>
+            </div>
+          } @else {
+            <p class="text-sm text-slate-600">Assigned to <strong>{{ lead.assignedUser?.name ?? 'nobody' }}</strong></p>
+          }
+          <p class="text-sm" [class.text-red-700]="isOverdue()" [class.font-semibold]="isOverdue()" data-testid="next-follow-up">
+            Next follow-up: {{ lead.nextFollowUpAt ? (lead.nextFollowUpAt | istDate: 'datetime') : 'not set' }}
+            @if (isOverdue()) { (overdue) }
+          </p>
+        </article>
+
+        <!-- WhatsApp templates -->
+        <article class="bd-card" aria-labelledby="wa-templates-title">
+          <bd-whatsapp-templates [lead]="{ id: lead.id, name: lead.name, phone: lead.phone }" />
+        </article>
+
+        <!-- Follow-ups -->
+        <article class="bd-card" aria-labelledby="lead-followups-title">
+          <bd-lead-follow-ups [leadId]="lead.id" (changed)="store.refresh()" />
+        </article>
+
+        <!-- Requirement -->
+        <article class="bd-card" aria-labelledby="req-title">
+          <h2 id="req-title" class="text-base font-semibold">Requirement</h2>
+          <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            <div><dt class="text-slate-500">Looking to</dt><dd class="font-medium">{{ listingLabels[lead.listingType] }}</dd></div>
+            <div><dt class="text-slate-500">Property</dt><dd class="font-medium">{{ lead.propertyType ? typeLabels[lead.propertyType] : 'Any' }}</dd></div>
+            <div><dt class="text-slate-500">BHK</dt><dd class="font-medium">{{ lead.bhk ? lead.bhk + ' BHK' : 'Any' }}</dd></div>
+            <div><dt class="text-slate-500">Location</dt><dd class="font-medium">{{ lead.preferredLocation ?? 'Any' }}</dd></div>
+            <div class="col-span-2">
+              <dt class="text-slate-500">Budget</dt>
+              <dd class="font-medium">
+                @if (lead.budgetMin || lead.budgetMax) {
+                  {{ lead.budgetMin ? (lead.budgetMin | inr) : 'Up to' }}{{ lead.budgetMin && lead.budgetMax ? ' – ' : ' ' }}{{ lead.budgetMax ? (lead.budgetMax | inr) : 'and above' }}
+                } @else { Not specified }
+              </dd>
+            </div>
+            @if (lead.areaMin || lead.areaMax) {
+              <div class="col-span-2">
+                <dt class="text-slate-500">Area</dt>
+                <dd class="font-medium">{{ lead.areaMin ?? '' }}{{ lead.areaMin && lead.areaMax ? ' – ' : '' }}{{ lead.areaMax ?? '' }} {{ lead.areaUnit ? areaUnitLabels[lead.areaUnit] : '' }}</dd>
+              </div>
+            }
+            <div><dt class="text-slate-500">Source</dt><dd class="font-medium">{{ sourceLabels[lead.source] }}</dd></div>
+            <div><dt class="text-slate-500">Added on</dt><dd class="font-medium">{{ lead.createdAt | istDate }}</dd></div>
+          </dl>
+          @if (lead.notes) {
+            <p class="mt-4 whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{{ lead.notes }}</p>
+          }
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a [routerLink]="['/leads', lead.id, 'edit']" class="bd-btn-secondary">Edit lead</a>
+            @if (canDelete()) {
+              <button type="button" class="bd-btn-secondary text-red-700" (click)="onDelete()" [disabled]="store.busy()">Delete</button>
+            }
+          </div>
+        </article>
+      </div>
+
+      <div class="space-y-4 lg:col-span-2">
+      <!-- Matching properties -->
+      <article class="bd-card" aria-labelledby="matches-title">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h2 id="matches-title" class="text-base font-semibold">Matching properties</h2>
+          <a [routerLink]="['/matching']" [queryParams]="{ lead: lead.id }" class="bd-link text-sm">Open in Matching</a>
+        </div>
+        <bd-property-matches [leadId]="lead.id" [lead]="{ id: lead.id, name: lead.name, phone: lead.phone }" />
+      </article>
+
+      <!-- Site visits -->
+      <article class="bd-card" aria-label="Site visits">
+        <bd-related-site-visits kind="lead" [id]="lead.id" (changed)="store.refresh()" />
+      </article>
+
+      <!-- History -->
+      <article class="bd-card" aria-labelledby="history-title">
+        <h2 id="history-title" class="mb-4 text-base font-semibold">Activity history</h2>
+        <bd-activity-timeline [activities]="store.activities()" [loading]="store.activitiesLoading()"
+                              [busy]="store.busy()" (add)="onAddActivity($event)" />
+      </article>
+      </div>
+    </div>
+  } @else {
+    <div class="space-y-3" aria-busy="true">
+      <div class="h-32 animate-pulse rounded-2xl bg-slate-100"></div>
+      <div class="h-64 animate-pulse rounded-2xl bg-slate-100"></div>
+    </div>
+  }
+</section>

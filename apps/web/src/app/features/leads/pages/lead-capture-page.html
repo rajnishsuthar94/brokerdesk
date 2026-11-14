@@ -1,0 +1,92 @@
+<section class="mx-auto max-w-4xl space-y-4">
+  <a routerLink="/leads" class="bd-link text-sm">‹ All leads</a>
+  <header>
+    <h1 class="text-2xl font-semibold tracking-tight">Get leads online</h1>
+    <p class="mt-1 text-sm text-slate-600">
+      Share your enquiry form. When a buyer fills it in, they appear in <strong>Leads</strong> automatically
+      (source: “Enquiry form / QR”). Repeat enquiries from the same number are added to that lead's history.
+    </p>
+  </header>
+
+  @if (settings.isLoading() && !settings.value()) {
+    <div class="h-64 animate-pulse rounded-2xl bg-slate-100" aria-busy="true"></div>
+  } @else if (settings.error()) {
+    <p class="bd-alert-error" role="alert">{{ loadError() }}</p>
+  } @else if (settings.value(); as s) {
+    @if (!s.enabled) {
+      <div class="flex flex-col gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between" role="status">
+        <p class="text-sm text-amber-900"><strong>Your enquiry form is switched off.</strong> People opening the link see "not available".</p>
+        @if (auth.canManageTeam()) {
+          <button type="button" class="bd-btn-primary" (click)="setEnabled(true)" [disabled]="busy()">Switch on</button>
+        }
+      </div>
+    }
+
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <!-- Link + WhatsApp -->
+      <article class="bd-card space-y-3" aria-labelledby="link-title">
+        <h2 id="link-title" class="text-base font-semibold">Your enquiry link</h2>
+        <label class="sr-only" for="enquiry-url">Enquiry form link</label>
+        <input id="enquiry-url" class="bd-input font-mono text-sm" [value]="s.url" readonly data-testid="enquiry-url" />
+        <div class="flex flex-wrap gap-2">
+          <a class="bd-btn bg-[#25D366] text-white hover:bg-[#1ebe5b]" [href]="whatsappUrl()" target="_blank" rel="noopener">Share on WhatsApp</a>
+          <button type="button" class="bd-btn-secondary" (click)="copy(link('whatsapp'))">Copy link</button>
+          <a class="bd-btn-secondary" [href]="s.url" target="_blank" rel="noopener">Preview form</a>
+        </div>
+        <p class="bd-hint">Tip: post it as your WhatsApp Status, or send it to buyers who ask "what do you have?".</p>
+      </article>
+
+      <!-- QR code -->
+      <article class="bd-card space-y-3" aria-labelledby="qr-title">
+        <h2 id="qr-title" class="text-base font-semibold">QR code</h2>
+        <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+          @if (qr.value(); as dataUrl) {
+            <img [src]="dataUrl" alt="QR code that opens your enquiry form" class="h-40 w-40 rounded-lg border border-slate-200" data-testid="enquiry-qr" />
+          } @else {
+            <div class="h-40 w-40 animate-pulse rounded-lg bg-slate-100" aria-busy="true"></div>
+          }
+          <div class="space-y-2 text-sm text-slate-600">
+            <p>Print it on visiting cards, site boards, brochures or your office door. Buyers scan it with their phone camera.</p>
+            <button type="button" class="bd-btn-secondary" (click)="downloadQr()" [disabled]="!qr.value()">Download QR (PNG)</button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Per-channel links -->
+    <article class="bd-card" aria-labelledby="channels-title">
+      <h2 id="channels-title" class="text-base font-semibold">Links for social media & website</h2>
+      <p class="mt-1 text-sm text-slate-600">Each link records where the buyer came from, so you can see which channel brings leads.</p>
+      <ul class="mt-3 divide-y divide-slate-100">
+        @for (c of channels; track c.channel) {
+          <li class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center">
+            <div class="min-w-0 flex-1">
+              <p class="font-medium">{{ c.label }}</p>
+              <p class="truncate text-xs text-slate-500">{{ c.hint }} · <span class="font-mono">{{ link(c.channel) }}</span></p>
+            </div>
+            <button type="button" class="bd-btn-secondary" (click)="copy(link(c.channel), c.label + ' link')">Copy</button>
+          </li>
+        }
+      </ul>
+    </article>
+
+    @if (auth.canManageTeam()) {
+      <article class="bd-card space-y-3" aria-labelledby="manage-title">
+        <h2 id="manage-title" class="text-base font-semibold">Manage</h2>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-slate-600">
+            The form is <strong>{{ s.enabled ? 'on' : 'off' }}</strong>.
+            @if (s.enabled) { Switch it off to pause online enquiries temporarily. }
+          </p>
+          @if (s.enabled) {
+            <button type="button" class="bd-btn-secondary" (click)="setEnabled(false)" [disabled]="busy()">Switch off</button>
+          }
+        </div>
+        <div class="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="text-sm text-slate-600">Getting spam? Create a new link. The old link and QR code stop working.</p>
+          <button type="button" class="bd-btn-secondary text-red-700" (click)="resetLink()" [disabled]="busy()">Create new link</button>
+        </div>
+      </article>
+    }
+  }
+</section>
